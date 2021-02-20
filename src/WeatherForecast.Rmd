@@ -1,0 +1,188 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(corrplot)
+library(caTools)
+library(Metrics)
+```
+
+
+```{r}
+citiesAttributes <- read.csv("city_attributes.csv")
+citiesHumidity <- read.csv("humidity.csv") 
+citiesPressure <- read.csv("pressure.csv")
+citiesTemp <- read.csv("temperature.csv")
+citiesWeatherDescription <- read.csv("weather_description.csv")
+citiesWind_direction <- read.csv("wind_direction.csv")
+citiesWind_speed <- read.csv("wind_speed.csv")
+```
+
+```{r}
+citiesHumiditySF <- select(citiesHumidity,"datetime" ,"San.Francisco")
+names(citiesHumiditySF)[2] <- "Humidity"
+citiesPressureSF <- select(citiesPressure ,"San.Francisco")
+names(citiesPressureSF)[1] <- "Pressure"
+citiesTempSF <- select(citiesTemp ,"San.Francisco")
+names(citiesTempSF)[1] <- "Temperature"
+citiesWeatherDescriptionSF <- select(citiesWeatherDescription ,"San.Francisco")
+names(citiesWeatherDescriptionSF)[1] <- "Weather Description"
+citiesWind_directionSF <- select(citiesWind_direction ,"San.Francisco")
+names(citiesWind_directionSF)[1] <- "Wind Direction"
+citiesWind_speedSF <- select(citiesWind_speed ,"San.Francisco")
+names(citiesWind_speedSF)[1] <- "WindSpeed"
+sanFranciscoWeatherData <- cbind(citiesHumiditySF,citiesPressureSF, citiesTempSF, citiesWeatherDescriptionSF, citiesWind_directionSF,citiesWind_speedSF)
+
+sanFranciscoWeatherData <- sanFranciscoWeatherData[-c(1), ]
+sanFranciscoWeatherData <- na.omit(sanFranciscoWeatherData)
+
+```
+
+```{r}
+# Creating correlation Matrix and displaying it
+correlation <- cor(sanFranciscoWeatherData[-c(1,5)])
+corrplot(correlation, method="number")
+```
+
+```{r}
+# Set the random seed for repeatability
+set.seed(123) 
+
+# Split the data into 3:1 ratio
+sample = sample.split(sanFranciscoWeatherData, SplitRatio = .75)
+trainingSet = subset(sanFranciscoWeatherData, sample == TRUE)
+testingSet  = subset(sanFranciscoWeatherData, sample == FALSE)
+```
+
+
+# Build Model #1 on Training Set
+```{r}
+model <- lm(Temperature ~ Pressure, trainingSet)
+model
+```
+
+# Predicting the testing set Model 1
+```{r}
+# Predict the position with the model and test data
+predictedTemperatureWPressure <- predict(model, testingSet)
+
+# Create data frame with actual and predicted values
+temperaturePrediction <- data.frame(Pressure = testingSet$Pressure, 
+                               actualTemperature = testingSet$Temperature,
+                               predictedTemperature = predictedTemperatureWPressure)
+
+temperaturePrediction
+```
+
+## Visualize the prediction Model 1
+```{r}
+ggplot(data = temperaturePrediction, mapping = aes(x = Pressure)) +
+  geom_point(data = temperaturePrediction, 
+             mapping = aes(y = actualTemperature),
+             color = "blue") +
+  geom_point(data = temperaturePrediction, 
+             mapping = aes(y = predictedTemperature), 
+             color = "red") +
+  labs(title = "Pressure vs. Temperature" ,
+        subtitle = "Actual (Blue) vs. Predicted (Red)", x = "Pressure",
+        y = "Temperature")
+
+```
+
+# Mean Absolute Error Model 1
+
+```{r}
+error <- mse(temperaturePrediction$actualTemperature, temperaturePrediction$predictedTemperature)
+cat("Mean Square Error:", error)
+```
+
+# Model 2
+
+# Build Model #2 on Training Set
+```{r}
+model2 <- lm(Temperature ~ Humidity, trainingSet)
+model2
+```
+
+# Predicting the testing set Model 2
+```{r}
+# Predict the position with the model and test data
+predictedTemperatureWHumidity <- predict(model2, testingSet)
+
+# Create data frame with actual and predicted values
+HumidityPrediction <- data.frame(Humidity = testingSet$Humidity, 
+                               actualTemperature = testingSet$Temperature,
+                               predictedTemperature = predictedTemperatureWHumidity)
+
+
+HumidityPrediction
+```
+
+## Visualize the prediction Model 2
+```{r}
+ggplot(data = HumidityPrediction, mapping = aes(x = Humidity)) +
+  geom_point(data = HumidityPrediction, 
+             mapping = aes(y = actualTemperature),
+             color = "blue") +
+  geom_point(data = HumidityPrediction, 
+             mapping = aes(y = predictedTemperature), 
+             color = "red") +
+  labs(title = "Humidity vs. Temperature" ,
+        subtitle = "Actual (Blue) vs. Predicted (Red)", x = "Pressure",
+        y = "Temperature")
+
+```
+
+# Mean Absolute Error Model 2
+
+```{r}
+error <- mse(HumidityPrediction$actualTemperature, HumidityPrediction$predictedTemperature)
+cat("Mean Square Error:", error)
+```
+
+# Model 3
+
+# Build Model #3 on Training Set
+```{r}
+model3 <- lm(Temperature ~ WindSpeed, data = trainingSet)
+model3
+```
+
+# Predicting the testing set Model 3
+```{r}
+# Predict the position with the model and test data
+predictedTemperatureW_Wind_Speed <- predict(model3, testingSet)
+
+# Create data frame with actual and predicted values
+WindSpeedPrediction <- data.frame(WindSpeed = testingSet$WindSpeed, 
+                               actualTemperature = testingSet$Temperature,
+                               predictedTemperature = predictedTemperatureW_Wind_Speed)
+
+WindSpeedPrediction
+```
+
+## Visualize the prediction Model 3
+```{r}
+ggplot(data = WindSpeedPrediction, mapping = aes(x = WindSpeed)) +
+  geom_point(data = WindSpeedPrediction, 
+             mapping = aes(y = actualTemperature),
+             color = "blue") +
+  geom_point(data = WindSpeedPrediction, 
+             mapping = aes(y = predictedTemperature), 
+             color = "red") +
+  labs(title = "Wind Speed vs. Temperature" ,
+        subtitle = "Actual (Blue) vs. Predicted (Red)", x = "Wind Speed",
+        y = "Temperature")
+
+```
+
+# Mean Absolute Error Model 3
+
+```{r}
+error <- mse(WindSpeedPrediction$actualTemperature, WindSpeedPrediction$predictedTemperature)
+cat("Mean Square Error:", error)
+```
+
